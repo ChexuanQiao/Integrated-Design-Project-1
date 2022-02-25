@@ -19,14 +19,14 @@ const int R1LF_collector = 9;
 const int R2LF_collector;
 
 // Tunable Parameters.
-const float kp = 20; // Proportional gain.
+const float kp = 50; // Proportional gain.
 const float ki = 3; // Integral gain.
 const float kd = 0; // Derivative gain.
 
 const int Intersection_queue_length = 30;
 const int detection_threshold = 20; // IntersectionDetection Threshold, the number of 1s in queue
 
-const int delay_time = 500; // main loop delay.
+const int delay_time = 100; // main loop delay.
 const int max_speed = 255; // Maximum allowable motor speed.
 const int ref_speed = 150; // forward speed
 const int turn_speed = 50;
@@ -159,8 +159,8 @@ void MovementControl::FindTask(){
     EdgeDetection();
 
     if (intersection_counter == 0){
-        task = 0;
-        Serial.println("Starting Dummy Move Forward.");
+        task = 1;
+        Serial.println("Starting Line Follow."); // "Starting Dummy Move Forward.");
     }
 
     if (intersection_counter == 1){
@@ -180,7 +180,7 @@ void MovementControl::PID()
 {
 
     int current_time = millis();
-    P = L1LF_data - R1LF_data;
+    P = -(L1LF_data - R1LF_data);
     I = 0; // pre_I + P * 0.001 * (current_time - prev_time);
     PIDError = P*kp + I*ki;
     pre_I = I;
@@ -201,12 +201,12 @@ void MovementControl::PID()
   if (speedR < 0) {
     speedR = 0;
   }
-  LeftMotor->run(FORWARD);
-  //LeftMotor->setSpeed(speedL);
-  LeftMotor->setSpeed(0);
-  RightMotor->run(FORWARD);
-  RightMotor->setSpeed(0);
-  //RightMotor->setSpeed(speedR);
+  LeftMotor->run(BACKWARD);
+  LeftMotor->setSpeed(speedL);
+  //LeftMotor->setSpeed(0);
+  RightMotor->run(BACKWARD);
+  //RightMotor->setSpeed(0);
+  RightMotor->setSpeed(speedR);
 }
 
 void MovementControl::TURN() // 90 degree turn
