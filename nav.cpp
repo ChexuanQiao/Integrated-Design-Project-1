@@ -14,6 +14,10 @@ const int R1LF_supply = 11;
 const int R2LF_supply;
 */
 
+// Motor shield motor pins.
+Adafruit_DCMotor *LeftMotor = AFMS.getMotor(2);
+Adafruit_DCMotor *RightMotor = AFMS.getMotor(1);
+
 // Line sensor data receive pins.
 const int L2LF_receive;
 const int L1LF_receive = 8;
@@ -25,15 +29,15 @@ const int DS_supply;
 const int DS_receive;
 
 // Tunable Parameters.
-const float kp = 50; // Proportional gain.
+const float kp = 30; // Proportional gain.
 const float ki = 0; // Integral gain.
 const float kd = 0; // Derivative gain.
 
-const int main_loop_delay_time = 10; // main loop delay.
+const int main_loop_delay_time = 100; // main loop delay.
 const int delay_time = 100; // Misc delay.
 const int max_speed = 255; // Maximum allowable motor speed.
 const int ref_speed = 150; // Normal forward motor speed.
-const int turn_speed = 50; // Turning speed.
+const int turn_speed = 150; // Turning speed.
 
 const int intxn_queue_length = 5; // intersection queue length.
 const int intxn_detection_threshold = 4; // IntersectionDetection Threshold, the number of 1s in intersection queue.
@@ -51,9 +55,6 @@ float dip_threshold = 1;
 int block_found = 0;
 int search_time;
 
-// Motor shield motor pins.
-Adafruit_DCMotor *LeftMotor = AFMS.getMotor(2);
-Adafruit_DCMotor *RightMotor = AFMS.getMotor(1);
 // ---------------------
 
 int task = 0;
