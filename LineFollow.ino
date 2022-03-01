@@ -96,9 +96,11 @@ void MovementControl::PID()
   RightMotor->run(FORWARD);
   if (speedL != prev_speedL){
     LeftMotor->setSpeed(speedL);
+    prev_speedL = speedL;
   }
   if (speedR != prev_speedR){
     RightMotor->setSpeed(speedR);
+    prev_speedR = speedR;
   }
 }
 
