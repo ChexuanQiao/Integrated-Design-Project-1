@@ -14,6 +14,8 @@ const int R1LF_receive = 9;
 
 const int main_loop_delay_time = 100; // main loop delay.
 
+const int printfreq = 500 / main_loop_delay_time;
+
 // Tunable Parameters.
 const float kp = 30; // Proportional gain.
 const float ki = 0; // Integral gain.
@@ -55,7 +57,7 @@ void LFDetection::LFDataRead()
     L1LF_data = digitalRead(L1LF_receive);
     R1LF_data = digitalRead(R1LF_receive);
 
-    if (main_loop_counter % 10 == 0){
+    if (main_loop_counter % printfreq == 0){
       Serial.println("Line Sensor 1 2: " + String(L1LF_data) + " " + String(R1LF_data));
     }
 }
@@ -108,7 +110,7 @@ void MovementControl::LineFollow()
 {
     LFDataRead();
     PID();
-    if (main_loop_counter % 10 == 0){
+    if (main_loop_counter % printfreq  == 0){
         Serial.println("Motor speed L R: " + String(speedL) + " "
          + String(speedR));
     }
@@ -126,18 +128,20 @@ void setup()
 
 void loop()
 {
-
-    Serial.println("Loop: " + String(main_loop_counter) + " ------------------------");
-
+    if (main_loop_counter % printfreq == 0){
+        Serial.println("Loop: " + String(main_loop_counter) + " ------------------------");
+    }
     MovementControl MC;
     LFDetection LF;
 
     current_time = millis();
-  
+
     MC.LineFollow();
 
     delay(main_loop_delay_time);
     main_loop_counter++;
-    Serial.println(" ");
+    if (main_loop_counter % printfreq == 0){
+        Serial.println(" ");
+    }
 
 }
