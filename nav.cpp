@@ -164,24 +164,26 @@ void LFDetection::EdgeDetection() // Testing using L1 and R1.
 
     if (L1LF_data == 1){
         left_white_counter++;
-        Serial.println("L1 ENqueued 1");
+        // Serial.println("L1 ENqueued 1");
     }
     if (Ldeq == 1){
         left_white_counter--;
-        Serial.println("L1 DEqueued 1");
+        // Serial.println("L1 DEqueued 1");
     }
     if (R1LF_data == 1){
         right_white_counter++;
-        Serial.println("R1 ENqueued 1");
+        // Serial.println("R1 ENqueued 1");
     }
     if (Rdeq == 1){
         right_white_counter--;
-        Serial.println("R1 DEqueued 1");
+        // Serial.println("R1 DEqueued 1");
     }
+    /*
     if (main_loop_counter % 10 == 0){
         Serial.println("left_White_Counter: " + String(left_white_counter));
         Serial.println("right_White_Counter: " + String(right_white_counter));
     }
+    */
 }
 
 /*
@@ -257,17 +259,17 @@ void MovementControl::FindTask(){
     EdgeDetection();
     IntersectionDetection();
 
-    if (left_intxn_counter == 0){
-        task = 1;
-        Serial.println("(Line Following) Dummy Move Forward."); // "Starting Dummy Move Forward.");
+    if (false){
+        task = 0;
+        Serial.println("Dummy Move Forward."); // "Starting Dummy Move Forward.");
     }
 
-    if (left_intxn_counter == 1){
+    if (left_intxn_counter >= 0){
         task = 1;
         Serial.println("Line Following.");
     }
 
-    if (right_intxn_counter == 2){
+    if (false){
         task = 2;
         Serial.println("Starting Right Turn.");
     }
@@ -335,11 +337,11 @@ void MovementControl::PID()
     speedR = 0;
   }
   LeftMotor->run(FORWARD);
-  //LeftMotor->setSpeed(speedL);
-  LeftMotor->setSpeed(0);
+  LeftMotor->setSpeed(speedL);
+  // LeftMotor->setSpeed(0);
   RightMotor->run(FORWARD);
-  RightMotor->setSpeed(0);
-  //RightMotor->setSpeed(speedR);
+  // RightMotor->setSpeed(0);
+  RightMotor->setSpeed(speedR);
 }
 
 void MovementControl::TURN() // 90 degree turn
@@ -389,13 +391,13 @@ void MovementControl::LineFollow()
 {
     LFDataRead();
     PID();
-    if (main_loop_counter % 20 == 0){
+    if (main_loop_counter % 10 == 0){
         Serial.println("Sensor 1 2: " + String(L1LF_data) + " " + String(R1LF_data));
         // Serial.println("PID value: "+ String(PIDError));
         Serial.println("Motor speed L R: " + String(speedL) + " "
          + String(speedR));
     }
-    delay(delay_time);
+    // delay(delay_time);
 }
 
 void MovementControl::DummyMove(){
