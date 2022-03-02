@@ -48,11 +48,20 @@ int r_intxn_deb_prev; // Last Right intersection debounce start time.
 int l_intxn_deb = 1; // Intersection debounce checker.
 int r_intxn_deb = 1;
 
-const int sweep_queue_length = 5; // Distance sensor sweep queue length.
-const int sweep_queue_threshold = 4;
-float max_dist;
-float min_dist;
-float dip_threshold = 1;
+const int sweep_queue_length = 10; // Distance sensor sweep queue length.
+const int front_queue_length = 5;
+const int back_queue_length = 5;
+const float dip_threshold = 4.;
+float front_avg = 0;
+float back_avg = 0;
+ArduinoQueue<int> Q = ArduinoQueue<int>(sweep_queue_length);
+ArduinoQueue<int> F = ArduinoQueue<int>(front_queue_length);
+ArduinoQueue<int> B = ArduinoQueue<int>(back_queue_length);
+
+float front_front;
+float mid_front;
+float back_front;
+
 int block_found = 0;
 unsigned long search_time = 0;
 
@@ -86,7 +95,7 @@ float DS_data; // Distance Sensor data.
 
 ArduinoQueue<int> L2Queue = ArduinoQueue<int>(intxn_queue_length);
 ArduinoQueue<int> R2Queue = ArduinoQueue<int>(intxn_queue_length);
-ArduinoQueue<int> sweepQueue = ArduinoQueue<int>(sweep_queue_length);
+
 
 class LFDetection
 {
@@ -102,27 +111,46 @@ public:
 };
 
 void LFDetection::BlockDetection(){
-    // Not robust.
-    if (DS_data < min_dist){
-        min_dist = DS_data;
+  // Fill three queues
+  // F----- Q ---------- B-----
+  while (!F.isFull()){
+    DS_data = analogRead(DS_receive);
+    F.enqueue( DS_data );
+    front_avg += DS_data / front_queue_length;
+  }
+  while (!Q.isFull()){
+    DS_data = analogRead(DS_receive);
+    Q.enqueue( DS_data );
+  }
+  while (!B.isFull()){
+    DS_data = analogRead(DS_receive);
+    B.enqueue( DS_data );
+    back_avg += DS_data / back_queue_length;
+  }
+  
+  while (true){
+    DS_data = analogRead(DS_receive);
+    front_front = F.dequeue();
+    mid_front = Q.dequeue();
+    back_front = B.dequeue();
+    
+    F.enqueue(mid_front);
+    Q.enqueue(back_front);
+    B.enqueue(DS_data);
+    
+    front_avg -= front_front / front_queue_length;
+    front_avg += mid_front / front_queue_length;
+    back_avg -= back_front / back_queue_length;
+    back_avg += DS_data / back_queue_length;
+    
+    Serial.println("Front Average: " + String(front_avg));
+    Serial.println("Back  Average: " + String(back_avg));
+    
+    if (front_avg - back_avg > dip_threshold){
+      Serial.println("Block Found.");
+      break;
     }
-    if (DS_data > max_dist){
-        max_dist = DS_data;
-    }
-    if (max_dist - min_dist >= dip_threshold){
-        block_found = 1;
-    }
-    /*
-    int sweep_deq = sweepQueue.dequeue();
-    if (sweep_deq < min_dist){
-        min_dist = sweep_deq;
-    }
-    sweepQueue.enqueue(DS_data);
-    if (DS_data > max_dist){
-        max_dist = DS_data;
-    }
-    */
-
+  }
 }
 
 
