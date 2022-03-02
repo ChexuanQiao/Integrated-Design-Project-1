@@ -15,13 +15,13 @@ const int R2LF_supply;
 */
 
 // Motor shield motor pins.
-Adafruit_DCMotor *LeftMotor = AFMS.getMotor(2);
-Adafruit_DCMotor *RightMotor = AFMS.getMotor(1);
+Adafruit_DCMotor *LeftMotor = AFMS.getMotor(4);
+Adafruit_DCMotor *RightMotor = AFMS.getMotor(3);
 
 // Line sensor data receive pins.
 const int L2LF_receive;
 const int L1LF_receive = 8;
-const int R1LF_receive = 9;
+const int R1LF_receive = 10;
 const int R2LF_receive;
 
 // Distance sensor supply and receive pins.
@@ -34,6 +34,7 @@ const float ki = 0; // Integral gain.
 const float kd = 0; // Derivative gain.
 
 const int main_loop_delay_time = 100; // main loop delay.
+const int printfreq = 500 / main_loop_delay_time;
 const int delay_time = 100; // Misc delay.
 const int max_speed = 255; // Maximum allowable motor speed.
 const int ref_speed = 150; // Normal forward motor speed.
@@ -130,7 +131,7 @@ void LFDetection::LFDataRead()
     L1LF_data = digitalRead(L1LF_receive);
     R1LF_data = digitalRead(R1LF_receive);
 
-    if (main_loop_counter % 10 == 0){
+    if (main_loop_counter % printfreq == 0){
       Serial.println("Sensor Data 1 2: " + String(L1LF_data) + " " + String(R1LF_data));
     }
 }
@@ -138,10 +139,11 @@ void LFDetection::LFDataRead()
 void LFDetection::DSDataRead()
 {
     DS_data = digitalRead(DS_receive);
-
-    if (main_loop_counter % 10 == 0){
+/*
+    if (main_loop_counter % printfreq == 0){
       Serial.println("Distance sensor: " + String(DS_data));
     }
+    */
 }
 
 void LFDetection::EdgeDetection() // Testing using L1 and R1.
@@ -262,22 +264,26 @@ void MovementControl::FindTask(){
 
     if (false){
         task = 0;
-        Serial.println("Dummy Move Forward."); // "Starting Dummy Move Forward.");
+        if (main_loop_counter % printfreq == 0){
+        Serial.println("Dummy Move Forward."); }// "Starting Dummy Move Forward.");
     }
 
     if (left_intxn_counter >= 0){
         task = 1;
-        Serial.println("Line Following.");
+        if (main_loop_counter % printfreq == 0){
+        Serial.println("Line Following.");}
     }
 
     if (false){
         task = 2;
-        Serial.println("Starting Right Turn.");
+        if (main_loop_counter % printfreq == 0){
+        Serial.println("Starting Right Turn.");}
     }
 
     if (false){
         task = 3;
-        Serial.println("Looking for block.");
+        if (main_loop_counter % printfreq == 0){
+        Serial.println("Looking for block.");}
     }
 }
 
@@ -316,7 +322,7 @@ void MovementControl::PID()
 {
 
     int current_time = millis();
-    P = L1LF_data - R1LF_data;
+    P = -(L1LF_data - R1LF_data);
     I = pre_I + P * 0.001 * (current_time - prev_time);
     PIDError = P * kp + I * ki;
     pre_I = I;
@@ -392,8 +398,8 @@ void MovementControl::LineFollow()
 {
     LFDataRead();
     PID();
-    if (main_loop_counter % 10 == 0){
-        Serial.println("Sensor 1 2: " + String(L1LF_data) + " " + String(R1LF_data));
+    if (main_loop_counter % printfreq == 0){
+        // Serial.println("Sensor 1 2: " + String(L1LF_data) + " " + String(R1LF_data));
         // Serial.println("PID value: "+ String(PIDError));
         Serial.println("Motor speed L R: " + String(speedL) + " "
          + String(speedR));
@@ -421,14 +427,6 @@ void setup()
   Serial.begin(9600);
   Serial.println("Testing START!");
   AFMS.begin();
-  LeftMotor->setSpeed(150);
-  LeftMotor->run(FORWARD);
-  LeftMotor->run(RELEASE);
-  LeftMotor->run(BACKWARD);
-  RightMotor->setSpeed(150);
-  RightMotor->run(FORWARD);
-  RightMotor->run(RELEASE);
-  RightMotor->run(BACKWARD);
 
   for (int i=0;i<intxn_queue_length;i++)
   {
@@ -462,7 +460,7 @@ void setup()
 void loop()
 {
 
-    Serial.println("Loop: " + String(main_loop_counter) + " ------------------------");
+    if (main_loop_counter % printfreq == 0){Serial.println("Loop: " + String(main_loop_counter) + " ------------------------");}
 
     MovementControl MC;
     LFDetection LF;
@@ -492,6 +490,7 @@ void loop()
 
     delay(main_loop_delay_time);
     main_loop_counter++;
-    Serial.println(" ");
+    if (main_loop_counter % printfreq == 0){
+    Serial.println(" ");}
 
 }
