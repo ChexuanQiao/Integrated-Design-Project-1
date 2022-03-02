@@ -5,25 +5,25 @@
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
 // Motor shield motor pins.
-Adafruit_DCMotor *LeftMotor = AFMS.getMotor(2);
-Adafruit_DCMotor *RightMotor = AFMS.getMotor(1);
+Adafruit_DCMotor *LeftMotor = AFMS.getMotor(4);
+Adafruit_DCMotor *RightMotor = AFMS.getMotor(3);
 
 // Line sensor data receive pins.
 const int L1LF_receive = 8;
-const int R1LF_receive = 9;
+const int R1LF_receive = 10;
 
 const int main_loop_delay_time = 100; // main loop delay.
 
 const int printfreq = 500 / main_loop_delay_time;
 
 // Tunable Parameters.
-const float kp = 30; // Proportional gain.
+const float kp = 50; // Proportional gain.
 const float ki = 0; // Integral gain.
 const float kd = 0; // Derivative gain.
 
 const int delay_time = 100; // Misc delay.
 const int max_speed = 255; // Maximum allowable motor speed.
-const int ref_speed = 150; // Normal forward motor speed.
+const int ref_speed = 200; // Normal forward motor speed.
 const int turn_speed = 150; // Turning speed.
 
 // ---------------------
@@ -73,7 +73,7 @@ class MovementControl: public LFDetection
 
 void MovementControl::PID()
 {
-  P = L1LF_data - R1LF_data;
+  P = -(L1LF_data - R1LF_data);
   I = pre_I + P * 0.001 * (current_time - prev_time);
   PIDError = P * kp + I * ki;
   pre_I = I;
@@ -96,6 +96,8 @@ void MovementControl::PID()
   }
   LeftMotor->run(FORWARD);
   RightMotor->run(FORWARD);
+  //LeftMotor->setSpeed(speedL);
+  //RightMotor->setSpeed(speedR);
   if (speedL != prev_speedL){
     LeftMotor->setSpeed(speedL);
     prev_speedL = speedL;
