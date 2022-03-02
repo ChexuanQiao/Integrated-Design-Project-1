@@ -54,12 +54,12 @@ float max_dist;
 float min_dist;
 float dip_threshold = 1;
 int block_found = 0;
-int search_time;
+unsigned long search_time = 0;
 
 // ---------------------
 
 int task = 0;
-int main_loop_counter = 0;
+unsigned long main_loop_counter = 0;
 
 // PID parameters.
 float PIDError = 0; // PID control feedback
@@ -288,15 +288,14 @@ void MovementControl::FindTask(){
 }
 
 void MovementControl::SEARCH(){
-    // Pretty rough.
     LeftMotor->setSpeed(0);
     RightMotor->setSpeed(0);
-    delay(1000);
+    delay(500);
+    
     LeftMotor->run(RELEASE);
     RightMotor->run(RELEASE);
-    int time = search_time;
-    while(time - search_time < 5000 && block_found != 1){
-        time = millis();
+    int search_time = millis();
+    while(millis() - search_time < 5000 && block_found != 1){
         DSDataRead();
         BlockDetection();
         LeftMotor->run(BACKWARD);
@@ -485,6 +484,7 @@ void loop()
 
     if (task == 3){
         search_time = current_time;
+        
         MC.SEARCH();
     }
 
