@@ -14,10 +14,21 @@ const int R1LF_supply = 11;
 const int R2LF_supply;
 */
 
+// DistanceIR 
+const int DS_receive =A0;
+float sensorVal = 0;
+float sensorVolt = 0;
+float Vr=5.0;
+float sum=0;
+float k1=16.7647563;
+float k2=-0.80803107;
+float distance=0;
+
 // Motor shield motor pins.
 Adafruit_DCMotor *LeftMotor = AFMS.getMotor(4);
 Adafruit_DCMotor *RightMotor = AFMS.getMotor(3);
 
+const int LED ;
 // Line sensor data receive pins.
 const int L2LF_receive;
 const int L1LF_receive = 8;
@@ -26,14 +37,14 @@ const int R2LF_receive;
 
 // Distance sensor supply and receive pins.
 const int DS_supply;
-const int DS_receive;
+
 
 // Tunable Parameters.
 const float kp = 30; // Proportional gain.
 const float ki = 0; // Integral gain.
 const float kd = 0; // Derivative gain.
 
-const int main_loop_delay_time = 100; // main loop delay.
+const int main_loop_delay_time = 50; // main loop delay.
 const int printfreq = 500 / main_loop_delay_time;
 const int delay_time = 100; // Misc delay.
 const int max_speed = 255; // Maximum allowable motor speed.
@@ -81,6 +92,7 @@ int prev_speedL;
 int prev_speedR;
 unsigned long current_time = 0;
 unsigned long prev_time = 0;
+unsigned long prev_blink_time = 0;
 
 int Turn = 2;
 
@@ -168,6 +180,18 @@ void LFDetection::LFDataRead()
 void LFDetection::DSDataRead()
 {
     DS_data = digitalRead(DS_receive);
+     
+  sum=0;
+  for (int i=0; i<100; i++)
+  {
+    sum=sum+float(analogRead(analogPin));  
+  }
+  sensorVal=sum/100;
+  sensorVolt=sensorVal*Vr/1024;
+ 
+  distance = pow(sensorVolt*(1/k1), 1/k2);
+  Serial.println(distance);
+  delay(500);
 /*
     if (main_loop_counter % printfreq == 0){
       Serial.println("Distance sensor: " + String(DS_data));
@@ -279,7 +303,17 @@ class MovementControl: public LFDetection
       void PID(void);
       void DummyMove(void);
       void SEARCH(void);
+      void Blink(void);
 };
+
+void MovementControl::Blink(void){
+  if (millis() - prev_blink_time > 500){
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(10);
+    digitalWrite(LED_BUILTIN, LOW);
+    prev_blink_time = millis();
+  }
+}
 
 void MovementControl::FindTask(){
     LFDataRead();
@@ -293,7 +327,7 @@ void MovementControl::FindTask(){
         Serial.println("Dummy Move Forward."); }// "Starting Dummy Move Forward.");
     }
 
-    if (true){
+    if (right_intxn_counter <= 3){
         task = 1;
         if (main_loop_counter % printfreq == 0){
         Serial.println("Line Following.");}
@@ -305,7 +339,7 @@ void MovementControl::FindTask(){
         Serial.println("Starting Right Turn.");}
     }
 
-    if (false){
+    if (right_intxn_counter == 3){
         task = 3;
         if (main_loop_counter % printfreq == 0){
         Serial.println("Looking for block.");}
@@ -487,6 +521,7 @@ void setup()
   pinMode(R2LF_supply,OUTPUT);
   */
   pinMode(DS_supply, OUTPUT);
+  pinMode(LED, OUTPUT);
   /*
   digitalWrite(L2LF_supply,HIGH);
   digitalWrite(L1LF_supply,HIGH);
@@ -516,6 +551,7 @@ void loop()
     current_time = millis();
 
     MC.FindTask();
+    MC.Blink();
 
     if (task == 0){
         MC.DummyMove();
