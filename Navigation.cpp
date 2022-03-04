@@ -5,9 +5,6 @@
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
-
-
-
 // Motor shield motor pins.
 Adafruit_DCMotor *LeftMotor = AFMS.getMotor(4);
 Adafruit_DCMotor *RightMotor = AFMS.getMotor(3);
@@ -20,15 +17,12 @@ const int R1LF_receive = 10;
 const int R2LF_receive;
 
 // Tunable Parameters.
-long before_search_lf_period = 2000;
+const long before_search_lf_period = 2000;
 
 const float kp = 30; // Proportional gain.
 const float ki = 0; // Integral gain.
 const float kd = 0; // Derivative gain.
 
-const int main_loop_delay_time = 50; // main loop delay.
-const int print_freq = 500 / main_loop_delay_time;
-const int delay_time = 100; // Misc delay.
 const int max_speed = 255; // Maximum allowable motor speed.
 const int ref_speed = 200; // Normal forward motor speed.
 const int turn_speed = 150; // Turning speed.
@@ -75,6 +69,9 @@ int speedR;
 int prev_speedL;
 int prev_speedR;
 
+const int main_loop_delay_time = 50; // main loop delay.
+const int print_freq = 500 / main_loop_delay_time;
+const int delay_time = 100; // Misc delay.
 unsigned long main_loop_counter = 0;
 unsigned long current_time = 0;
 unsigned long search_time = 0;
