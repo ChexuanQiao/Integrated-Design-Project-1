@@ -75,6 +75,10 @@ float PIDError = 0; // PID control feedback
 float P, I, D;
 float pre_I = 0;
 float pre_P = 0;
+int speedL;
+int speedR;
+int prev_speedL;
+int prev_speedR;
 unsigned long current_time = 0;
 unsigned long prev_time = 0;
 
@@ -278,10 +282,6 @@ class MovementControl: public LFDetection
       void PID(void);
       void DummyMove(void);
       void SEARCH(void);
-
-  private:
-      int speedL;
-      int speedR;
 };
 
 void MovementControl::FindTask(){
@@ -322,23 +322,40 @@ void MovementControl::SEARCH(){
     
     LeftMotor->run(RELEASE);
     RightMotor->run(RELEASE);
-    int search_time = millis();
-    while(millis() - search_time < 5000 && block_found != 1){
+    search_time = millis();
+    
+    LeftMotor->run(BACKWARD);
+    while(millis() - search_time < 3000 && block_found != 1){
         DSDataRead();
         BlockDetection();
-        LeftMotor->run(BACKWARD);
-        LeftMotor->setSpeed(20);
+
+        LeftMotor->setSpeed(200);
+
     }
 
     LeftMotor->setSpeed(0);
     RightMotor->setSpeed(0);
+    LeftMotor->run(FORWARD);
     delay(500);
-
-    while (block_found != 1){
+    
+    while (millis() - search_time < 6000 && block_found != 1){
         DSDataRead();
         BlockDetection();
-        RightMotor->run(BACKWARD);
-        RightMotor->setSpeed(20);
+        
+        LeftMotor->setSpeed(200);
+
+    }
+    LeftMotor->setSpeed(0);
+    RightMotor->run(FORWARD);
+    delay(500);
+    
+    RightMotor->run(BACKWARD);
+    while (millis() - search_time < 9000 && block_found != 1){
+        DSDataRead();
+        BlockDetection();
+        
+        RightMotor->setSpeed(200);
+
     }
     LeftMotor->setSpeed(0);
     RightMotor->setSpeed(0);
@@ -371,11 +388,16 @@ void MovementControl::PID()
     speedR = 0;
   }
   LeftMotor->run(FORWARD);
-  LeftMotor->setSpeed(speedL);
-  // LeftMotor->setSpeed(0);
   RightMotor->run(FORWARD);
-  // RightMotor->setSpeed(0);
-  RightMotor->setSpeed(speedR);
+
+  if (speedL != prev_speedL){
+    LeftMotor->setSpeed(speedL);
+    prev_speedL = speedL;
+  }
+  if (speedR != prev_speedR){
+    RightMotor->setSpeed(speedR);
+    prev_speedR = speedR;
+  }
 }
 
 void MovementControl::TURN() // 90 degree turn
