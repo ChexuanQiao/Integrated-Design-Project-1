@@ -37,11 +37,11 @@ const int main_loop_delay_time = 100; // main loop delay.
 const int printfreq = 500 / main_loop_delay_time;
 const int delay_time = 100; // Misc delay.
 const int max_speed = 255; // Maximum allowable motor speed.
-const int ref_speed = 150; // Normal forward motor speed.
+const int ref_speed = 200; // Normal forward motor speed.
 const int turn_speed = 150; // Turning speed.
 
 const int intxn_queue_length = 5; // intersection queue length.
-const int intxn_detection_threshold = 4; // IntersectionDetection Threshold, the number of 1s in intersection queue.
+const int intxn_detection_threshold = 3; // IntersectionDetection Threshold, the number of 1s in intersection queue.
 const int intxn_deb_time = 1000; // Intersection debounce threshold time.
 int l_intxn_deb_prev; // Last Left intersection debounce start time.
 int r_intxn_deb_prev; // Last Right intersection debounce start time.
@@ -132,7 +132,6 @@ void LFDetection::BlockDetection(){
     back_avg += DS_data / back_queue_length;
   }
   
-  while (true){
     DS_data = analogRead(DS_receive);
     front_front = F.dequeue();
     mid_front = Q.dequeue();
@@ -147,14 +146,12 @@ void LFDetection::BlockDetection(){
     back_avg -= back_front / back_queue_length;
     back_avg += DS_data / back_queue_length;
     
-    Serial.println("Front Average: " + String(front_avg));
-    Serial.println("Back  Average: " + String(back_avg));
+    // Serial.println("Front Average: " + String(front_avg));
+    // Serial.println("Back  Average: " + String(back_avg));
     
     if (front_avg - back_avg > dip_threshold){
       Serial.println("Block Found.");
-      break;
     }
-  }
 }
 
 
@@ -296,7 +293,7 @@ void MovementControl::FindTask(){
         Serial.println("Dummy Move Forward."); }// "Starting Dummy Move Forward.");
     }
 
-    if (left_intxn_counter >= 0){
+    if (true){
         task = 1;
         if (main_loop_counter % printfreq == 0){
         Serial.println("Line Following.");}
@@ -325,7 +322,7 @@ void MovementControl::SEARCH(){
     search_time = millis();
     
     LeftMotor->run(BACKWARD);
-    while(millis() - search_time < 3000 && block_found != 1){
+    while(millis() - search_time < 1000 && block_found != 1){
         DSDataRead();
         BlockDetection();
 
@@ -338,7 +335,7 @@ void MovementControl::SEARCH(){
     LeftMotor->run(FORWARD);
     delay(500);
     
-    while (millis() - search_time < 6000 && block_found != 1){
+    while (millis() - search_time < 2500 && block_found != 1){
         DSDataRead();
         BlockDetection();
         
@@ -350,7 +347,7 @@ void MovementControl::SEARCH(){
     delay(500);
     
     RightMotor->run(BACKWARD);
-    while (millis() - search_time < 9000 && block_found != 1){
+    while (millis() - search_time < 4000 && block_found != 1){
         DSDataRead();
         BlockDetection();
         
@@ -359,14 +356,14 @@ void MovementControl::SEARCH(){
     }
     LeftMotor->setSpeed(0);
     RightMotor->setSpeed(0);
-    delay(500);
+    Serial.println("Search Complete");
+    delay(5000);
+    
 }
 
 void MovementControl::PID()
 {
-
-    int current_time = millis();
-    P = -(L1LF_data - R1LF_data);
+    P = (L1LF_data - R1LF_data);
     I = pre_I + P * 0.001 * (current_time - prev_time);
     PIDError = P * kp + I * ki;
     pre_I = I;
