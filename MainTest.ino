@@ -4,25 +4,37 @@
 #include <ArduinoQueue.h>
 #include <Servo.h>
 
-// Arduino Pins
-const int ButtonPin = 5;
-const int AmberLED = 4;
+int far_blue_target = 0;
+int close_blue_target = 0;
+int far_red_target = 0;
+int close_red_target = 0;
 
-const int GreenLED = 2;
-const int RedLED = 3;
+int delivering_far = 0;
+int delivering_close = 0;
+
+// Remains to be solved.
+int current_left_intxn;
+int current_right_intxn;
+
+const int delivery_lf_period = 2000;
+// Arduino Pins
+const int ButtonPin = 11;
+const int AmberLED = 8;
+
+const int GreenLED = 12;
+const int RedLED = 13;
 
 // Line sensor data receive pins.
-const int L2LF_receive ;// = 12;
-const int L1LF_receive ;// = 11;
-const int R1LF_receive ;// = 10;
-const int R2LF_receive ;// = 8;
+const int L2LF_receive = 4;// = 12;
+const int L1LF_receive = 5;// = 11;
+const int R1LF_receive = 6 ;// = 10;
+const int R2LF_receive = 7;// = 8;
 
 const int servo1pin = 9;
 const int servo2pin = 10;
 // ------------------------------
 
 int line_find_turn_delay = 0;
-long delivery_lf_start_time; // delivery line follow start time.
 int approach_time; // calculated time to approach and retreat from block.
 int Turn = 0;
 
@@ -43,8 +55,8 @@ const int stray_threshold = 6;
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 // Motor shield motor pins.
-Adafruit_DCMotor *LeftMotor = AFMS.getMotor(4);
-Adafruit_DCMotor *RightMotor = AFMS.getMotor(3);
+Adafruit_DCMotor *LeftMotor = AFMS.getMotor(3);
+Adafruit_DCMotor *RightMotor = AFMS.getMotor(4);
 Servo clamp_servo;  // create servo object to control a servo
 Servo chassis_servo;
 
@@ -158,9 +170,7 @@ public:
     void ColorBaseline(void);
 };
 
-void LFDetection::ColorBaseline(void){
-    int GreenLED = 2;
-    int RedLED = 3;
+void LFDetection::ColorBaseline(){
     int counter = 10;
     for (int i = 0 ; i < counter ; i++){
         // read the input on analog pin 0:
@@ -194,9 +204,7 @@ void LFDetection::ColorBaseline(void){
     delay(2000);
 }
 
-void LFDetection::Color(void){
-    int GreenLED = 2;
-    int RedLED = 3;
+void LFDetection::Color(){
     // read the input on analog pin 0:
     int sensorValue = analogRead(A0);
     int sensorValue2 = analogRead(A1);
@@ -216,7 +224,8 @@ void LFDetection::Color(void){
     }
     */
     float color_threshold = 0.5;
-    for (int i = 160; i > 0 ; i-= 15){
+    /*
+    for (int i = 120; i > 0 ; i-= 15){
         digitalWrite(AmberLED, LOW);
         delay(10);
         digitalWrite(AmberLED, HIGH);
@@ -230,6 +239,7 @@ void LFDetection::Color(void){
         digitalWrite(RedLED, HIGH);
         delay(i);
     }
+    */
     if (difference - color_baseline < color_threshold) {
       digitalWrite(GreenLED, LOW); // turn Green LED on
       digitalWrite(RedLED, HIGH); // Red LED off
@@ -245,6 +255,8 @@ void LFDetection::Color(void){
       Turn = 2;
     }
     delay(5000);
+    digitalWrite(GreenLED, HIGH);
+    digitalWrite(RedLED, HIGH);
     return;
 }
 
@@ -290,8 +302,7 @@ void LFDetection::BlockDetection(){
     }
 }
 
-void LFDetection::LFDataRead()
-{
+void LFDetection::LFDataRead(){
     L1LF_data = digitalRead(L1LF_receive);
     R1LF_data = digitalRead(R1LF_receive);
     L2LF_data = digitalRead(L2LF_receive);
@@ -317,8 +328,7 @@ void LFDetection::LFDataRead()
 
 }
 
-void LFDetection::DSDataRead()
-{
+void LFDetection::DSDataRead(){
     DS_data = digitalRead(DS_receive);
     sum=0;
     for (int i=0; i<100; i++)
@@ -334,8 +344,7 @@ void LFDetection::DSDataRead()
     }
 }
 
-void LFDetection::EdgeDetection()
-{
+void LFDetection::EdgeDetection(){
     int Ldeq = L2Queue.dequeue();
     int Rdeq = R2Queue.dequeue();
     int L2enqueued = 0;
@@ -381,8 +390,7 @@ void LFDetection::EdgeDetection()
     */
 }
 
-void LFDetection::IntersectionDetection()
-{
+void LFDetection::IntersectionDetection(){
     if (current_time - l_intxn_deb_prev > intxn_deb_time){
         l_intxn_deb = 1;
     }
@@ -608,7 +616,7 @@ void MovementControl::DummyMove(){
 
 void MovementControl::PID(){
 
-    P = (L1LF_data - R1LF_data);
+    P = -(L1LF_data - R1LF_data);
     I = pre_I + P * 0.001 * (current_time - PID_prev_time);
     PIDError = P * kp + I * ki;
     pre_I = I;
@@ -761,7 +769,7 @@ void MovementControl::Approach(){
         ColorBaseline();
         long before_search_lf_time = millis();
         Serial.println("First block starting approach. Time:" + String(before_search_lf_time));
-        while (millis() - before_search_lf_time < 6000){
+        while (millis() - before_search_lf_time < 4100){
             Blink();
             LineFollow();
         }
@@ -830,16 +838,22 @@ void MovementControl::LineFindTurn(){
       digitalWrite(GreenLED, HIGH);
       delay(10);
       LeftMotor->run(BACKWARD);
+      //LeftMotor->run(FORWARD);
       LeftMotor->setSpeed(turn_speed);
       RightMotor->run(FORWARD);
+      // RightMotor->run(BACKWARD);
       RightMotor->setSpeed(turn_speed);
       delay(line_find_turn_delay); // turnaround guarantee.k
+      digitalWrite(RedLED, LOW);
+      delay(10);
+      digitalWrite(RedLED, HIGH);
+      
       LFDataRead();
-      while(R1LF_data != 1){
+      while(L1LF_data != 1){
         Blink();
         LFDataRead();
       }
-      delay(150);
+      delay(100);
       digitalWrite(GreenLED, LOW);
       delay(10);
       digitalWrite(GreenLED, HIGH);
@@ -852,16 +866,22 @@ void MovementControl::LineFindTurn(){
       digitalWrite(RedLED, HIGH);
       delay(10);
       LeftMotor->run(FORWARD);
+      //LeftMotor->run(BACKWARD);
       LeftMotor->setSpeed(turn_speed);
       RightMotor->run(BACKWARD);
+      // RightMotor->run(FORWARD);
       RightMotor->setSpeed(turn_speed);
       delay(line_find_turn_delay); // turnaround guarantee.
+      digitalWrite(RedLED, LOW);
+      delay(10);
+      digitalWrite(RedLED, HIGH);
+
       LFDataRead();
-      while(L1LF_data != 1){
+      while(R1LF_data != 1){
         Blink();
         LFDataRead();
       }
-      delay(150);
+      delay(100);
       digitalWrite(RedLED, LOW);
       delay(10);
       digitalWrite(RedLED, HIGH);
@@ -876,44 +896,80 @@ void MovementControl::LineFindTurn(){
 
   if (block_placed == 1 && journey == 1){
       journey = 0;
+      Serial.println("Turn complete. Journey flipped 1 to 0.");
   }
   else if (journey == 0){
       journey = 1;
+      Serial.println("Turn complete. Journey flipped 0 to 1.");
   }
-  Serial.println("Turn complete. Journey flipped.");
   delay(500); // Sanity pause.
 }
 
 void MovementControl::LFDelivery(){
+    Serial.println("Starting LF Delivery");
     long before_delivery_lf_time = millis();
-    int before_delivery_lf_period = 3100; // This is pretty good.
-    while (millis() - before_delivery_lf_time <= before_delivery_lf_period){
-        LineFollow();
+    int before_delivery_forward_period = 3200; // This is pretty good.
+    int before_delivery_retreat_period = 1000;
+
+    if (block_color == 0){
+        if (far_blue_target == 0){
+            Serial.println("Delivering FAR BLUE target.");
+            far_blue_target = 1;
+            while ( millis() - before_delivery_lf_time < before_delivery_forward_period){
+                LineFollow();
+            }
+        }
+        else if (far_blue_target == 1){
+            Serial.println("Delivering CLOSE BLUE target.");
+            close_blue_target = 1;
+            LeftMotor->setSpeed(0);
+            RightMotor->setSpeed(0);
+            LeftMotor->run(BACKWARD);
+            RightMotor->run(BACKWARD);
+            LeftMotor->setSpeed(ref_speed);
+            RightMotor->setSpeed(ref_speed);
+            while ( millis() - before_delivery_lf_time < before_delivery_retreat_period ){
+                delay(10);
+            }
+        }
     }
+    if (block_color == 1){
+        if (far_red_target == 0){
+            Serial.println("Delivering FAR RED target.");
+            far_red_target = 1;
+            while ( millis() - before_delivery_lf_time < before_delivery_retreat_period){
+                LineFollow();
+            }
+        }
+        else if (far_red_target == 1){
+            Serial.println("Delivering CLOSE RED target.");
+            far_red_target = 1;
+            LeftMotor->setSpeed(0);
+            RightMotor->setSpeed(0);
+            LeftMotor->run(BACKWARD);
+            RightMotor->run(BACKWARD);
+            LeftMotor->setSpeed(ref_speed);
+            RightMotor->setSpeed(ref_speed);
+            while ( millis() - before_delivery_lf_time < before_delivery_forward_period ){
+                delay(10);
+            }
+        }
+    }
+    
     LeftMotor->setSpeed(0);
     RightMotor->setSpeed(0);
-    prev_speedL = 0;
-    prev_speedR = 0;
+    delay(500);
 
     line_find_turn_delay = 500;
-    if (block_color == 0){
-        Turn = 2;
-    }
-    else {
-        Turn = 1;
-    }
     // HardTurn();
     LineFindTurn();
+    
+    long delivery_lf_start_time = millis();
 
-    int current_left_intxn = left_intxn_counter;
-    int current_right_intxn = right_intxn_counter;
-    delivery_lf_start_time = millis();
-    long before_start_time = millis();
-    int before_time = 3000;
-    while(millis() - before_start_time < before_time){//current_left_intxn == left_intxn_counter && current_right_intxn == right_intxn_counter){
-        // DummyMove();
+    while(millis() - delivery_lf_start_time < delivery_lf_period){
         LineFollow();
     }
+    
     LeftMotor->setSpeed(0);
     RightMotor->setSpeed(0);
     prev_speedL = 0;
@@ -922,6 +978,20 @@ void MovementControl::LFDelivery(){
 
     // minor adjustments
     Place();
+
+    /*
+    int current_left_intxn = left_intxn_counter;
+    int current_right_intxn = right_intxn_counter;
+    Serial.println("CURRENT counters L R: " + String(current_left_intxn) + " " + String(current_right_intxn));
+
+    while((current_left_intxn == left_intxn_counter) && (current_right_intxn == right_intxn_counter)){
+        Serial.println("Sensor Data: " + String(L2LF_data) + " " + String(L1LF_data)+" " + String(R1LF_data) + " " + String(R2LF_data));
+        Serial.println("Intersection counters L R: " + String(left_intxn_counter) + " " + String(right_intxn_counter));
+        EdgeDetection();
+        IntersectionDetection();
+        delay(100);
+    }
+    */
 }
 void MovementControl::Reset(){
     long reset_start_time = millis();
@@ -931,7 +1001,7 @@ void MovementControl::Reset(){
     LeftMotor->setSpeed(ref_speed);
     RightMotor->setSpeed(ref_speed);
 
-    while(millis() - reset_start_time < 3000){
+    while(millis() - reset_start_time < delivery_lf_period){
         delay(100);
     }
 
@@ -946,11 +1016,11 @@ void MovementControl::Reset(){
     block_picked = 0;
     retreated_with_block = 0;
     journey = 0;
+    block_placed = 0;
     left_intxn_counter = 1;
     right_intxn_counter = 1;
     color_baseline = 0;
-    block_number ++ ;
-    if (block_number == 2){
+    if (block_number == 4){
         Serial.println("ending run");
         Finish();
     }
@@ -1055,9 +1125,9 @@ void MovementControl::HardTurn(){
 void MovementControl::HardDelivery(){
     // This would be much better done with line follower.
     long before_delivery_lf_time = millis();
-    int before_delivery_lf_period = 1000; // 1 more second before stop.
+    int before_delivery_forward_period = 1000; // 1 more second before stop.
     int delivery_time = 3000;
-    while (millis() - before_delivery_lf_time <= before_delivery_lf_period){
+    while (millis() - before_delivery_lf_time <= before_delivery_forward_period){
         LineFollow();
     }
     LeftMotor->setSpeed(0);
